@@ -141,12 +141,12 @@
       ? '<span class="badge badge-warning">학습범위 밖(외삽)</span>' : "";
 
     let metaHtml = `
-      <span><strong>산업</strong> ${c.sector_name || "미분류"}</span>
+      <span><strong>산업</strong> ${escapeHtml(c.sector_name) || "미분류"}</span>
       <span><strong>순위</strong> ${c.rank.toLocaleString()} / ${(c.group === "default" ? META.n_default_reference : META.screening.n_companies).toLocaleString()} (그룹 내 백분위 ${c.percentile.toFixed(1)})</span>
       <span><strong>기준연도</strong> ${c.ref_year === null ? "N/A" : c.ref_year}</span>`;
     if (c.group === "default") {
       metaHtml += `
-      <span><strong>상장여부(사건당시)</strong> ${c.listed_status || "N/A"}</span>
+      <span><strong>상장여부(사건당시)</strong> ${escapeHtml(c.listed_status) || "N/A"}</span>
       <span><strong>부도연도</strong> ${c.default_year === null ? "N/A" : c.default_year}</span>
       <span><strong>채점방식</strong> 교차검증(out-of-fold)</span>`;
     } else {
@@ -160,8 +160,8 @@
 
     document.getElementById("companyOverview").innerHTML = `
       <div class="company-overview-title">
-        <h1>${c.corp_name}</h1>
-        <span class="corp-code">${c.corp_code}</span>
+        <h1>${escapeHtml(c.corp_name)}</h1>
+        <span class="corp-code">${escapeHtml(c.corp_code)}</span>
         <div class="company-overview-badges">
           <span class="badge ${groupBadgeClass}">${groupLabel}</span>
           ${rangeBadge}
@@ -438,7 +438,7 @@
   }
 
   function nl2br(text) {
-    return text.split("\n").map((line) => line.trim()).filter(Boolean).join("<br>");
+    return text.split("\n").map((line) => line.trim()).filter(Boolean).map(escapeHtml).join("<br>");
   }
 
   function renderAuditMatters(o) {
@@ -485,7 +485,7 @@
         <tr>
           <td class="year-cell">${o.year}</td>
           <td>${opinionCell}</td>
-          <td>${o.auditor || '<span class="na">N/A</span>'}</td>
+          <td>${o.auditor ? escapeHtml(o.auditor) : '<span class="na">N/A</span>'}</td>
         </tr>`;
     }).join("");
 
@@ -531,7 +531,7 @@
       if (!g.header) {
         return g.children.map((line) => `
           <tr class="level-2">
-            <td>${line.name}</td>
+            <td>${escapeHtml(line.name)}</td>
             ${renderAmountCells(line.values)}
           </tr>`).join("");
       }
@@ -539,16 +539,16 @@
       const groupId = `${stmtKey}-${gi}`;
       const headerRow = expandable
         ? `<tr class="stmt-row-header" data-group="${groupId}" role="button" tabindex="0" aria-expanded="false">
-             <td><span class="stmt-toggle-icon">▸</span>${g.header.name}</td>
+             <td><span class="stmt-toggle-icon">▸</span>${escapeHtml(g.header.name)}</td>
              ${renderAmountCells(g.header.values)}
            </tr>`
         : `<tr class="level-0">
-             <td>${g.header.name}</td>
+             <td>${escapeHtml(g.header.name)}</td>
              ${renderAmountCells(g.header.values)}
            </tr>`;
       const childRows = g.children.map((line) => `
         <tr class="stmt-row-detail" data-group="${groupId}" hidden>
-          <td>${line.name}</td>
+          <td>${escapeHtml(line.name)}</td>
           ${renderAmountCells(line.values)}
         </tr>`).join("");
       return headerRow + childRows;

@@ -58,6 +58,12 @@
 
   // ---------------- 유틸 ----------------
 
+  function escapeHtml(s) {
+    const div = document.createElement("div");
+    div.textContent = s == null ? "" : String(s);
+    return div.innerHTML;
+  }
+
   function tierInfo(percentile) {
     if (percentile >= 99) return { key: "critical", label: "상위 1%" };
     if (percentile >= 90) return { key: "serious", label: "상위 10%" };
@@ -326,10 +332,10 @@
     tr.innerHTML = `
       <td>${c.rank.toLocaleString()}</td>
       <td class="corp-cell">
-        <span class="corp-name">${c.corp_name}</span>
-        <span class="corp-code">${c.corp_code}</span>
+        <span class="corp-name">${escapeHtml(c.corp_name)}</span>
+        <span class="corp-code">${escapeHtml(c.corp_code)}</span>
       </td>
-      <td class="industry-cell">${c.sector_name || "미분류"}</td>
+      <td class="industry-cell">${escapeHtml(c.sector_name) || "미분류"}</td>
       <td>${priorDefaultBadge}</td>
       <td>${negNewsCell(c)}</td>
       <td>${trendCell(c)}</td>
