@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Default Forecasting Model — 회사 상세</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-top">
+    <div class="header-title">
+      <a href="index.html" class="btn-ghost" id="backLink">← 목록으로</a>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn-icon" id="themeToggle" aria-label="테마 전환" title="라이트/다크 전환">
+        <span id="themeIcon">🌙</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="companyMain">
+  <div id="notFound" hidden>
+    <p>회사를 찾을 수 없습니다. <a href="index.html">목록으로 돌아가기</a></p>
+  </div>
+
+  <div id="companyContent" hidden>
+    <div class="company-overview" id="companyOverview"><!-- JS --></div>
+
+    <div id="notesArea"><!-- JS: growth/extrapolation notes --></div>
+
+    <section class="detail-section" id="probabilityHistorySection">
+      <h2 class="section-title">부도확률 3개년 추이</h2>
+      <p class="section-note" id="probHistoryNote"></p>
+      <div id="probHistoryBlock"><!-- JS --></div>
+    </section>
+
+    <section class="detail-section">
+      <h2 class="section-title">재무지표 상세</h2>
+      <p class="section-note">Default(부도) 가능성 예측을 위해 모델이 사용한 변수들입니다 · 변수중요도 순</p>
+      <div class="indicator-grid" id="indicatorGrid"><!-- JS --></div>
+    </section>
+
+    <section class="detail-section" id="profitabilityExtraSection">
+      <h2 class="section-title">수익성·성장성 지표</h2>
+      <p class="section-note" id="profitabilityExtraNote">영업이익률·ROA·ROE·매출액증가율은 모델 변수와 동일한 값이며, EBITDA마진·영업이익 3년 CAGR·매출액 3년 CAGR은 화면 표시 전용(모델 미사용) 참고 지표입니다</p>
+      <div class="indicator-grid" id="profitabilityExtraGrid"><!-- JS --></div>
+    </section>
+
+    <section class="detail-section" id="auditSection">
+      <h2 class="section-title">최근 3년 외부감사인 감사의견</h2>
+      <p class="section-note" id="auditNote"></p>
+      <div id="auditHistoryBlock"><!-- JS --></div>
+    </section>
+
+    <section class="detail-section" id="financialsSection">
+      <h2 class="section-title">3개년 재무제표 원본</h2>
+      <p class="section-note" id="financialsNote"></p>
+      <div id="statementBlocks"><!-- JS --></div>
+    </section>
+
+    <section class="detail-section" id="newsSection">
+      <h2 class="section-title">최근 1년 관련 뉴스</h2>
+      <p class="section-note" id="newsNote"></p>
+      <p class="news-sentiment-summary" id="newsSentimentSummary"></p>
+      <div id="newsBlock"><!-- JS --></div>
+    </section>
+  </div>
+</main>
+
+<footer class="app-footer">
+  <p>Default Forecasting Model — 프로토타입입니다. 실제 투자/딜소싱 판단에는 추가 검증이 필요합니다.</p>
+</footer>
+
+<script src="data/dashboard_data.js"></script>
+<script src="data/company_financials.js"></script>
+<script src="data/company_audit_history.js"></script>
+<script src="data/company_news.js"></script>
+<script src="data/company_profitability_extra.js"></script>
+<script src="data/company_probability_history.js"></script>
+<script src="company.js"></script>
+</body>
+</html>

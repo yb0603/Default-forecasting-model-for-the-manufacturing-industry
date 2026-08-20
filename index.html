@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Default Forecasting Model</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-top">
+    <div class="header-title">
+      <h1>Default Forecasting Model</h1>
+      <p class="subtitle">2025년 사업보고서 제출 · 제조업(비상장+상장) · 자산총계 100억~3,000억 기업 대상 부도위험 스크리닝 (XGBoost)</p>
+      <p class="attribution">Made by YUBIN KIM, opop1802@gmail.com</p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn-ghost" id="jumpToLimitations">⚠ 모델 한계</button>
+      <button type="button" class="btn-icon" id="themeToggle" aria-label="테마 전환" title="라이트/다크 전환">
+        <span id="themeIcon">🌙</span>
+      </button>
+    </div>
+  </div>
+  <div class="stat-tiles" id="statTiles"><!-- JS: populated from meta --></div>
+</header>
+
+<div class="limitations-banner" id="limitationsBanner">
+  <button type="button" class="limitations-strip" id="limitationsToggle" aria-expanded="false">
+    <span class="limitations-strip-icon">⚠</span>
+    <span id="limitationsCount">이 모델은 완벽하지 않습니다 — 5가지 한계가 있습니다.</span>
+    <span class="limitations-strip-cta">자세히 보기 ▾</span>
+  </button>
+  <div class="limitations-detail" id="limitationsDetail" hidden></div>
+</div>
+
+<main>
+  <div class="controls-bar">
+    <input type="search" id="searchInput" class="search-input" placeholder="회사명 또는 고유번호 검색" aria-label="회사 검색">
+
+    <select id="listedFilter" class="select-input" aria-label="상장여부 필터">
+      <option value="all" selected>상장+비상장 전체</option>
+      <option value="상장">상장(코스닥·코스피)</option>
+      <option value="비상장">비상장</option>
+    </select>
+
+    <select id="priorDefaultFilter" class="select-input" aria-label="과거 부도 이력 필터">
+      <option value="all" selected>과거 부도 이력 전체</option>
+      <option value="has">과거 부도 이력 있음</option>
+      <option value="none">과거 부도 이력 없음</option>
+    </select>
+
+    <div class="tier-chips" id="tierChips" role="group" aria-label="위험등급 필터"><!-- JS --></div>
+
+    <button type="button" id="resetFilters" class="btn-ghost">필터 초기화</button>
+    <span class="result-count" id="resultCount"></span>
+  </div>
+
+  <div class="table-scroll">
+    <table class="ranking-table" id="rankingTable">
+      <thead>
+        <tr>
+          <th data-sort="rank" class="sortable">순위</th>
+          <th data-sort="corp_name" class="sortable">회사명</th>
+          <th data-sort="sector_name" class="sortable">산업</th>
+          <th data-sort="default_year" class="sortable">과거 부도 이력</th>
+          <th data-sort="neg_news_count" class="sortable">
+            최근 부정뉴스
+            <span class="th-tooltip" tabindex="0" data-tooltip="KR-FinBERT 감성분석 기준, 주요 기사 중 부정으로 분류된 최근 1년 내 기사 수입니다.">ⓘ</span>
+          </th>
+          <th data-sort="trend_diff" class="sortable">
+            3개년 디폴트 확률 추세
+            <span class="th-tooltip" tabindex="0" data-tooltip="2023년→2025년 부도확률 변화입니다. 2%p 이상 상승/하락 시에만 화살표로 표시합니다.">ⓘ</span>
+          </th>
+          <th data-sort="probability" class="sortable">
+            위험도
+            <span class="th-tooltip" tabindex="0" data-tooltip="확정된 부도확률이 아니라 상대적 위험 순위(재무적 스트레스 점수)입니다.">ⓘ</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"><!-- JS --></tbody>
+    </table>
+  </div>
+
+  <div class="pagination" id="pagination"><!-- JS --></div>
+</main>
+
+<footer class="app-footer">
+  <p>Default Forecasting Model — 프로토타입입니다. 실제 투자/딜소싱 판단에는 추가 검증이 필요합니다.
+  <a href="#limitationsBanner" class="footer-link">모델 한계 다시 보기</a></p>
+  <p class="footer-meta" id="footerMeta"><!-- JS: generated_at --></p>
+</footer>
+
+<script src="data/dashboard_data.js"></script>
+<script src="data/company_probability_history.js"></script>
+<script src="data/company_news.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

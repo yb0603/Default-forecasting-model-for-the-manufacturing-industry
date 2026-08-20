@@ -1,0 +1,887 @@
+/* Default Forecasting Model — 대시보드 스타일
+   디자인 토큰은 dataviz 스킬 reference palette를 따름 (references/palette.md).
+   라이트 값은 :root, 다크는 media query + [data-theme="dark"] 양쪽에 정의. */
+
+:root {
+  color-scheme: light;
+
+  /* 표면 */
+  --surface-1: #fcfcfb;      /* 카드/테이블 표면 */
+  --page-plane: #f9f9f7;     /* 페이지 배경 */
+  --border: rgba(11, 11, 11, 0.10);
+  --gridline: #e1e0d9;
+  --baseline: #c3c2b7;
+
+  /* 잉크 */
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+
+  /* 카테고리컬 (2개: 정상=slot1 blue, 부도=slot2 orange) */
+  --series-control: #2a78d6;
+  --series-default: #eb6834;
+
+  /* 상태(위험등급) — 팔레트 고정, 절대 테마 안 함 */
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+
+  /* 성공 텍스트(딜타 등) */
+  --success-text: #006300;
+
+  /* 브랜드 액센트(UI 크롬 전용 - 데이터 인코딩에는 안 씀, Deloitte Green 참고) */
+  --brand-accent: #86bc25;
+  --brand-accent-ink: #4a6b13;   /* 밝은 배경 위 텍스트용(명도 낮춤) */
+  --brand-tint: color-mix(in srgb, var(--brand-accent) 10%, var(--surface-1));
+
+  --radius: 8px;
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page-plane: #0d0d0d;
+    --border: rgba(255, 255, 255, 0.10);
+    --gridline: #2c2c2a;
+    --baseline: #383835;
+
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+
+    --series-control: #3987e5;
+    --series-default: #d95926;
+
+    --status-good: #0ca30c;
+    --status-warning: #fab219;
+    --status-serious: #ec835a;
+    --status-critical: #d03b3b;
+
+    --success-text: #0ca30c;
+
+    --brand-accent: #9ed635;
+    --brand-accent-ink: #c5e878;
+    --brand-tint: color-mix(in srgb, var(--brand-accent) 12%, var(--surface-1));
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --page-plane: #0d0d0d;
+  --border: rgba(255, 255, 255, 0.10);
+  --gridline: #2c2c2a;
+  --baseline: #383835;
+
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+
+  --series-control: #3987e5;
+  --series-default: #d95926;
+
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+
+  --success-text: #0ca30c;
+
+  --brand-accent: #9ed635;
+  --brand-accent-ink: #c5e878;
+  --brand-tint: color-mix(in srgb, var(--brand-accent) 12%, var(--surface-1));
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--page-plane);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.visually-hidden-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* ---------------- 헤더 ---------------- */
+
+.app-header {
+  background: var(--surface-1);
+  border-top: 4px solid var(--brand-accent);
+  border-bottom: 1px solid var(--border);
+  padding: 24px 24px 16px;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.header-title h1 {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.subtitle {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.attribution {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+.btn-ghost:hover { background: var(--page-plane); }
+
+.btn-icon {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 32px;
+  height: 32px;
+  font-size: 15px;
+  cursor: pointer;
+}
+.btn-icon:hover { background: var(--page-plane); }
+
+/* ---------------- 통계 타일 ---------------- */
+
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.stat-tile {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  background: var(--page-plane);
+}
+
+.stat-tile-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.stat-tile-value {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: proportional-nums;
+}
+
+.stat-tile-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ---------------- 한계점 배너 ---------------- */
+
+.limitations-banner {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--status-warning) 12%, var(--surface-1));
+  border-bottom: 1px solid var(--border);
+}
+
+.limitations-strip {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.limitations-strip-icon { color: var(--status-serious); font-size: 14px; }
+.limitations-strip-cta { margin-left: auto; color: var(--text-secondary); font-size: 12px; flex-shrink: 0; }
+
+.limitations-detail {
+  padding: 4px 24px 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.limitation-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+
+.limitation-card h3 {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.limitation-card p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ---------------- 컨트롤바 ---------------- */
+
+main { padding: 20px 24px 40px; }
+
+.controls-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.search-input, .select-input {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  padding: 6px 10px;
+}
+
+.search-input { width: 220px; }
+
+.tier-chips { display: flex; gap: 6px; }
+
+.chip {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+.chip[aria-pressed="true"] {
+  background: var(--brand-accent);
+  color: #0b0b0b;
+  border-color: var(--brand-accent);
+  font-weight: 600;
+}
+
+.result-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ---------------- 테이블 ---------------- */
+
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+}
+
+.ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 720px;
+}
+
+.ranking-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-1);
+  text-align: left;
+  padding: 10px 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--gridline);
+  white-space: nowrap;
+}
+
+.ranking-table th.sortable { cursor: pointer; user-select: none; }
+.ranking-table th.sortable:hover { color: var(--text-primary); }
+.ranking-table th.sort-active { color: var(--text-primary); box-shadow: inset 0 -2px 0 var(--brand-accent); }
+.ranking-table th .sort-caret { margin-left: 4px; font-size: 10px; }
+
+.th-tooltip {
+  display: inline-block;
+  margin-left: 3px;
+  color: var(--text-muted);
+  cursor: help;
+  font-size: 11px;
+}
+
+/* JS(initTooltips)가 body에 직접 붙여서 position:fixed로 띄우는 공용 툴팁 -
+   .table-scroll의 overflow-x:auto에 잘리던 문제(2026-08-21 발견) 해결용.
+   .table-scroll 안에 두면 그 컨테이너 밖으로는 절대 못 나가 오른쪽 끝
+   컬럼(위험도 등)의 툴팁이 잘렸었음 - body 직속 + position:fixed + JS로
+   뷰포트 안에 들어오도록 클램핑하는 방식으로 교체. */
+.global-tooltip {
+  position: fixed;
+  max-width: 240px;
+  background: var(--text-primary);
+  color: var(--surface-1);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+  z-index: 50;
+  pointer-events: none;
+}
+.global-tooltip[hidden] { display: none; }
+
+.ranking-table tbody td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--gridline);
+  font-variant-numeric: tabular-nums;
+}
+
+.ranking-table tbody tr.data-row { cursor: pointer; }
+.ranking-table tbody tr.data-row:hover { background: var(--page-plane); }
+.ranking-table tbody tr.data-row.expanded { background: var(--page-plane); }
+
+.corp-cell { font-variant-numeric: proportional-nums; }
+.corp-name { font-weight: 500; }
+.corp-code { display: block; font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+.industry-cell { color: var(--text-secondary); font-size: 12.5px; }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge-default { background: color-mix(in srgb, var(--series-default) 18%, transparent); color: var(--series-default); }
+.badge-control { background: color-mix(in srgb, var(--series-control) 18%, transparent); color: var(--series-control); }
+.badge-warning { background: color-mix(in srgb, var(--status-warning) 18%, transparent); color: var(--status-warning); margin-left: 4px; }
+
+.risk-cell { display: flex; flex-direction: column; gap: 2px; }
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  width: fit-content;
+}
+.risk-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.risk-prob { font-size: 11px; color: var(--text-muted); }
+
+.risk-good .risk-dot { background: var(--status-good); }
+.risk-good .risk-label { color: var(--status-good); }
+.risk-warning .risk-dot { background: var(--status-warning); }
+.risk-warning .risk-label { color: color-mix(in srgb, var(--status-warning) 70%, var(--text-primary)); }
+.risk-serious .risk-dot { background: var(--status-serious); }
+.risk-serious .risk-label { color: var(--status-serious); }
+.risk-critical .risk-dot { background: var(--status-critical); }
+.risk-critical .risk-label { color: var(--status-critical); }
+
+.na { color: var(--text-muted); }
+
+/* 리스트 - 3개년 부도확률 추세 / 최근 부정뉴스 (2026-08-21) */
+.trend-badge { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.trend-up { color: var(--status-critical); }
+.trend-down { color: var(--status-good); }
+.trend-flat { color: var(--text-muted); }
+.neg-news-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--status-critical) 15%, transparent);
+  color: var(--status-critical);
+}
+
+/* ---------------- 감사의견 이력 (회사 상세페이지) ---------------- */
+.audit-history-table {
+  width: 100%;
+  max-width: 460px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.audit-history-table th {
+  text-align: left;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 6px 12px 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.audit-history-table td {
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+.audit-history-table tr:last-child td { border-bottom: none; }
+.audit-history-table td.year-cell { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+
+.opinion-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.opinion-적정 { background: color-mix(in srgb, var(--status-good) 18%, transparent); color: var(--status-good); }
+.opinion-한정 { background: color-mix(in srgb, var(--status-warning) 18%, transparent); color: var(--status-warning); }
+.opinion-부적정 { background: color-mix(in srgb, var(--status-serious) 18%, transparent); color: var(--status-serious); }
+.opinion-의견거절 { background: color-mix(in srgb, var(--status-critical) 18%, transparent); color: var(--status-critical); }
+
+.matter-details-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; max-width: 720px; }
+.matter-details {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--page-plane);
+}
+.matter-details summary {
+  cursor: pointer;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  list-style: none;
+}
+.matter-details summary::-webkit-details-marker { display: none; }
+.matter-details summary::before { content: "▸ "; color: var(--text-muted); }
+.matter-details[open] summary::before { content: "▾ "; }
+.matter-details-body { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 12px; }
+.matter-item { border-top: 1px solid var(--border); padding-top: 12px; }
+.matter-item:first-child { border-top: none; padding-top: 0; }
+.matter-item-idx { font-size: 10.5px; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+.matter-block { margin-bottom: 8px; }
+.matter-block:last-child { margin-bottom: 0; }
+.matter-label { font-size: 11px; font-weight: 600; color: var(--brand-accent); margin-bottom: 3px; }
+.matter-block p { font-size: 12.5px; line-height: 1.65; color: var(--text-primary); margin: 0; }
+
+/* 상세 아코디언 행 */
+tr.detail-row td {
+  padding: 0;
+  border-bottom: 1px solid var(--gridline);
+}
+
+.detail-panel {
+  padding: 16px 20px;
+  background: var(--page-plane);
+}
+
+.detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.detail-meta strong { color: var(--text-primary); }
+
+.growth-note {
+  background: color-mix(in srgb, var(--status-warning) 15%, var(--surface-1));
+  border: 1px solid color-mix(in srgb, var(--status-warning) 40%, transparent);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.indicator-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.indicator-item {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.indicator-item-summary {
+  padding: 8px 10px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.indicator-item-summary::-webkit-details-marker { display: none; }
+.indicator-item-summary::after {
+  content: "산식 보기 ▸";
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.indicator-item[open] > .indicator-item-summary::after { content: "산식 접기 ▾"; }
+
+/* 마우스 오버 시 버튼이 활성화된 것처럼 보이도록(호버 상태) */
+.indicator-item-summary:hover,
+.indicator-item-summary:focus-visible {
+  background: var(--brand-tint);
+  outline: none;
+}
+.indicator-item[open] > .indicator-item-summary {
+  background: var(--brand-tint);
+  border-bottom: 1px solid var(--border);
+}
+
+.indicator-item-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.indicator-rank-badge {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.indicator-desc {
+  padding: 6px 10px 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.indicator-item-value {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+/* ---------------- 페이지네이션 ---------------- */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  font-size: 13px;
+}
+
+.pagination button {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  padding: 5px 12px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+.pagination-info { color: var(--text-secondary); }
+
+/* ---------------- 푸터 ---------------- */
+
+.app-footer {
+  padding: 16px 24px 32px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.app-footer p { margin: 2px 0; }
+.footer-link { color: var(--brand-accent-ink); }
+.footer-meta { font-size: 11px; }
+
+@media (max-width: 640px) {
+  .header-top { flex-direction: column; }
+  .search-input { width: 100%; }
+}
+
+/* ---------------- 회사 상세 페이지 (company.html) ---------------- */
+
+.company-overview {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--brand-accent);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+}
+
+.company-overview-title { flex: 1 1 260px; min-width: 220px; }
+.company-overview-title h1 { margin: 0; font-size: 20px; font-weight: 600; }
+.company-overview-title .corp-code { display: block; font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+.company-overview-badges { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+
+.overview-risk {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 16px;
+  border-left: 1px solid var(--border);
+}
+.overview-risk-value { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.overview-risk-sub { font-size: 12px; color: var(--text-muted); }
+
+.company-overview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  flex-basis: 100%;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+.company-overview-meta strong { color: var(--text-primary); }
+
+.detail-section { margin-bottom: 28px; }
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 12px;
+  padding-left: 10px;
+  border-left: 4px solid var(--brand-accent);
+}
+.section-note { font-size: 12px; color: var(--text-muted); margin: -6px 0 14px 14px; }
+
+.statement-block {
+  margin-bottom: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface-1);
+}
+.statement-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #1c1c1a;
+}
+.statement-block-header h3 {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+:root[data-theme="light"] .statement-block-header,
+:root:not([data-theme="dark"]) .statement-block-header { background: #1c1c1a; }
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .statement-block-header { background: #050505; }
+}
+:root[data-theme="dark"] .statement-block-header { background: #050505; }
+
+.statement-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  min-width: 480px;
+}
+.statement-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-1);
+  text-align: right;
+  padding: 8px 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--brand-accent);
+  white-space: nowrap;
+}
+.statement-table thead th:first-child { text-align: left; }
+.statement-table tbody td {
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--gridline);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.statement-table tbody td:first-child { text-align: left; white-space: normal; color: var(--text-primary); }
+.statement-table tbody tr:hover { background: var(--page-plane); }
+
+/* 계정 레벨(단계)별 위계 표현 - level-0: 총계/최종합계, level-1: 중간 소계
+   (유동자산/영업이익 등), level-2: 세부 라인아이템 */
+.statement-table tr.level-0 td {
+  font-weight: 700;
+  background: var(--brand-tint);
+  border-top: 1.5px solid var(--brand-accent);
+  border-bottom: 1.5px solid var(--brand-accent);
+}
+.statement-table tr.level-0 td:first-child { padding-left: 14px; }
+
+.statement-table tr.level-1 td {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.statement-table tr.level-1 td:first-child { padding-left: 22px; }
+
+.statement-table tr.level-2 td {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+.statement-table tr.level-2 td:first-child { padding-left: 34px; }
+.statement-empty { color: var(--text-muted); font-size: 12.5px; padding: 8px 0; }
+
+/* 요약계정(자산총계 등) 클릭 -> 상세내역 펼침(회사 상세, 재무제표) */
+.statement-table tr.stmt-row-header {
+  font-weight: 700;
+  background: var(--brand-tint);
+  border-top: 1.5px solid var(--brand-accent);
+  border-bottom: 1.5px solid var(--brand-accent);
+  cursor: pointer;
+}
+.statement-table tr.stmt-row-header td:first-child { padding-left: 14px; }
+.statement-table tr.stmt-row-header:hover,
+.statement-table tr.stmt-row-header:focus-visible {
+  background: color-mix(in srgb, var(--brand-accent) 22%, var(--brand-tint));
+  outline: none;
+}
+.statement-table tr.stmt-row-header:focus-visible td:first-child { text-decoration: underline; }
+.stmt-toggle-icon {
+  display: inline-block;
+  width: 14px;
+  color: var(--brand-accent-ink);
+  font-size: 10px;
+  transition: transform 0.15s ease;
+}
+.statement-table tr.stmt-row-detail td {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+.statement-table tr.stmt-row-detail td:first-child { padding-left: 34px; }
+
+/* 회사 상세 - 최근 1년 관련 뉴스 */
+.news-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.news-item {
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.news-item:last-child { border-bottom: none; }
+.news-item a {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.news-item a:hover { color: var(--brand-accent-ink); text-decoration: underline; }
+.news-meta {
+  margin-top: 4px;
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.news-source::before { content: "·"; margin-right: 10px; color: var(--text-muted); }
+.news-relevance-badge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--brand-accent-ink);
+  background: var(--brand-tint);
+  border: 1px solid var(--brand-accent);
+  vertical-align: middle;
+}
+
+/* 회사 상세 - 뉴스 감성분석(KR-FinBERT, 2026-08-20) */
+.news-sentiment-summary {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.news-sentiment-summary-label { color: var(--text-muted); margin-right: 2px; }
+.sentiment-badge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.sentiment-negative { background: color-mix(in srgb, var(--status-critical) 18%, transparent); color: var(--status-critical); }
+.sentiment-neutral { background: color-mix(in srgb, var(--text-muted) 16%, transparent); color: var(--text-secondary); }
+.sentiment-positive { background: color-mix(in srgb, var(--status-good) 18%, transparent); color: var(--status-good); }
+
+/* 회사 상세 - 수익성/성장성 확장 지표(모델 미사용 참고 항목 표시) */
+.badge-note {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
+/* 회사 상세 - 부도확률 3개년 추이 */
+.prob-history-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+}
+.prob-history-svg { width: 100%; max-width: 320px; height: 108px; flex-shrink: 0; }
+.prob-history-point-label { font-size: 9px; fill: var(--text-muted); }
+.prob-history-value-label { font-size: 10px; font-weight: 700; fill: var(--text-primary); font-variant-numeric: tabular-nums; }
+.prob-history-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.prob-history-stats strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
