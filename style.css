@@ -211,20 +211,26 @@ html, body {
 /* ---------------- 한계점 배너 ---------------- */
 
 .limitations-banner {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: color-mix(in srgb, var(--status-warning) 12%, var(--surface-1));
   border-bottom: 1px solid var(--border);
 }
 
+/* 스티키 범위를 접힌 스트립(작은 고정 높이)에만 한정 - 예전엔 배너 전체
+   (펼쳐진 5개 카드 포함)가 스티키라서, 모바일처럼 화면이 낮을 때 펼친
+   상태로 스크롤하면 카드 그리드가 화면을 다 덮어 그 아래 회사 리스트가
+   안 보이는 문제가 있었음(2026-08-22 발견). 스트립만 스티키로 두면
+   펼친 카드 영역은 배너 컨테이너와 함께 정상적으로 스크롤되어 지나가고,
+   스트립은 배너 컨테이너가 화면에 걸쳐있는 동안만 상단에 붙어있다가
+   배너 전체가 지나가면 함께 스크롤되어 사라짐. */
 .limitations-strip {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   width: 100%;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 24px;
-  background: none;
+  background: color-mix(in srgb, var(--status-warning) 12%, var(--surface-1));
   border: none;
   color: var(--text-primary);
   font-family: var(--font-sans);
@@ -238,6 +244,7 @@ html, body {
 
 .limitations-detail {
   padding: 4px 24px 16px;
+  background: color-mix(in srgb, var(--status-warning) 12%, var(--surface-1));
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
