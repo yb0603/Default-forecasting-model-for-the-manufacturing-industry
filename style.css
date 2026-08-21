@@ -803,6 +803,15 @@ tr.detail-row td {
 }
 .statement-table tr.stmt-row-detail td:first-child { padding-left: 34px; }
 
+/* 그룹 안 소계(유동자산/매출원가 등) - 세부항목(level-2)보다 덜 들여쓰고
+   굵게 표시해 위계를 구분한다. .stmt-row-detail(class 1개)보다 detail을
+   명시(class 2개)해 우선순위를 확보 - 셀렉터 등장 순서와 무관하게 항상 적용됨 */
+.statement-table tr.stmt-row-detail.level-1 td {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.statement-table tr.stmt-row-detail.level-1 td:first-child { padding-left: 22px; }
+
 /* 회사 상세 - 최근 1년 관련 뉴스 */
 .news-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .news-item {

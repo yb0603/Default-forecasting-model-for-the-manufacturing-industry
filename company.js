@@ -27,60 +27,102 @@
   // 계정 레벨(단계) 분류 - 실제 XBRL 프레젠테이션 깊이 정보가 없어(project 데이터
   // 소스 한계) 계정명 키워드로 추정하는 휴리스틱. level 0 = 최종 총계/합계선,
   // level 1 = 구간 소계(유동자산/영업이익 등), level 2 = 나머지 세부 라인아이템.
-  const LEVEL0_KEYWORDS = [
-    "자산총계", "부채총계", "자본총계", "부채와자본총계", "부채및자본총계",
-    "매출액", "수익(매출액)", "매출총이익", "매출총손실",
-    "영업이익", "영업손실",
-    "법인세비용차감전순이익", "법인세비용차감전순손실",
-    "당기순이익", "당기순손실",
-    "영업활동현금흐름", "영업활동으로인한현금흐름",
-    "투자활동현금흐름", "투자활동으로인한현금흐름",
-    "재무활동현금흐름", "재무활동으로인한현금흐름",
-    "현금및현금성자산의증가", "현금및현금성자산의순증가", "현금및현금성자산의감소",
-    "기말현금및현금성자산",
-  ];
-  const LEVEL1_KEYWORDS = [
-    "유동자산", "비유동자산", "유동부채", "비유동부채",
-    "자본금", "자본잉여금", "이익잉여금", "기타자본항목", "기타포괄손익누계액",
-    "매출원가", "판매비와관리비", "영업외수익", "영업외비용",
-    "금융수익", "금융비용", "법인세비용", "기타수익", "기타비용",
-  ];
+  // 2026-08-21: 전역 키워드 목록 하나를 BS/IS/CF에 다 같이 쓰던 방식은
+  // 통계표를 모르고 매칭해서 서로 다른 표의 계정명이 우연히 겹치면(예: 향후
+  // "매출채권"(BS)과 "매출"(IS)) 오분류될 위험이 있었음 - 통계표별로 분리.
+  const LEVEL0_KEYWORDS = {
+    BS: ["자산총계", "부채총계", "자본총계",
+         "부채와자본총계", "부채및자본총계", "자본과부채총계", "자본및부채총계"],
+    IS: ["매출액", "수익(매출액)", "매출",
+         "매출총이익", "매출총손실",
+         "영업이익", "영업손실",
+         "법인세비용차감전순이익", "법인세비용차감전순손실",
+         "당기순이익", "당기순손실",
+         "총포괄손익", "당기총포괄손익", "총포괄이익", "당기총포괄이익"],
+    CF: ["영업활동현금흐름", "영업활동으로인한현금흐름",
+         "투자활동현금흐름", "투자활동으로인한현금흐름",
+         "재무활동현금흐름", "재무활동으로인한현금흐름",
+         "현금및현금성자산의증가", "현금및현금성자산의순증가", "현금및현금성자산의감소",
+         "기초현금및현금성자산", "기초의현금및현금성자산",
+         "기말현금및현금성자산", "기말의현금및현금성자산"],
+  };
+  const LEVEL1_KEYWORDS = {
+    BS: ["유동자산", "비유동자산", "유동부채", "비유동부채",
+         "자본금", "자본잉여금", "이익잉여금", "기타자본항목", "기타포괄손익누계액"],
+    IS: ["매출원가", "판매비와관리비", "영업외수익", "영업외비용",
+         "금융수익", "금융비용", "법인세비용", "기타수익", "기타비용", "기타포괄손익"],
+    CF: [],
+  };
+  // "유동자산"/"비유동자산" 등은 "기타유동자산"·"매각예정비유동자산"처럼 훨씬
+  // 흔한 세부 계정명의 부분문자열이기도 해서(포함 여부로 판정하면 세부항목이
+  // 소계처럼 굵게 표시되는 오탐이 발생) 이 4개만 정확히 일치할 때만 인정.
+  const EXACT_ONLY_KEYWORDS = new Set(["유동자산", "비유동자산", "유동부채", "비유동부채"]);
 
-  function accountLevel(name) {
-    if (!name) return 2;
-    if (LEVEL0_KEYWORDS.some((k) => name.includes(k))) return 0;
-    if (LEVEL1_KEYWORDS.some((k) => name.includes(k))) return 1;
-    return 2;
+  function normAccountName(name) {
+    return (name || "").replace(/\s+/g, "");
+  }
+
+  // 통계표(stmtKey)별 LEVEL0/LEVEL1 키워드 중 실제로 매칭되면서 가장 긴(=가장
+  // 구체적인) 키워드를 채택한다 - 예: "매출원가"는 짧은 "매출"에도 걸리지만
+  // "매출원가"가 더 길어 그쪽이 우선하므로 원가가 매출(총계)로 오분류되지 않음.
+  function accountLevel(stmtKey, name) {
+    const n = normAccountName(name);
+    if (!n) return 2;
+    let best = null;
+    (LEVEL0_KEYWORDS[stmtKey] || []).forEach((k) => {
+      const hit = EXACT_ONLY_KEYWORDS.has(k) ? n === k : n.includes(k);
+      if (hit && (!best || k.length > best.k.length)) best = { k, level: 0 };
+    });
+    (LEVEL1_KEYWORDS[stmtKey] || []).forEach((k) => {
+      const hit = EXACT_ONLY_KEYWORDS.has(k) ? n === k : n.includes(k);
+      if (hit && (!best || k.length > best.k.length)) best = { k, level: 1 };
+    });
+    return best ? best.level : 2;
   }
 
   // 재무제표 표준 표시 순서(사람이 읽는 관례) - 원본 데이터는 XBRL 계정코드
-  // 순서라 실제 신고서 표시 순서와 다를 수 있어(예: "매출액"이 뒤쪽에 나옴),
-  // 알려진 구간(대분류/소계) 키워드를 기준으로 재배치한다. 구간에 안 걸리는
-  // 세부 라인아이템은 "직전에 나온 구간"에 안정적으로 묶여 원래 상대 순서를 유지.
+  // 순서라 실제 신고서 표시 순서와 무관하게 뒤섞여 있어(예: "매출액"이 맨
+  // 뒤에, CF는 기초/기말현금이 맨 앞에 오기도 함), 알려진 구간(대분류/소계)
+  // 키워드를 기준으로 재배치한다. 구간에 안 걸리는 세부 라인아이템은
+  // "직전에 나온 구간"에 안정적으로 묶여 원래 상대 순서를 유지.
   const CANONICAL_ORDER = {
     BS: ["유동자산", "비유동자산", "자산총계",
          "유동부채", "비유동부채", "부채총계",
          "자본금", "자본잉여금", "이익잉여금", "기타자본항목", "기타포괄손익누계액",
-         "자본총계", "부채와자본총계", "부채및자본총계"],
-    IS: ["매출액", "수익(매출액)", "매출원가", "매출총이익", "매출총손실",
+         "자본총계",
+         "부채와자본총계", "부채및자본총계", "자본과부채총계", "자본및부채총계"],
+    IS: ["매출액", "수익(매출액)", "매출",
+         "매출원가", "매출총이익", "매출총손실",
          "판매비와관리비", "영업이익", "영업손실",
          "기타영업수익", "기타영업비용", "금융수익", "금융비용", "기타수익", "기타비용",
          "법인세비용차감전순이익", "법인세비용차감전순손실", "법인세비용",
-         "당기순이익", "당기순손실"],
+         "당기순이익", "당기순손실",
+         "기타포괄손익", "총포괄손익", "당기총포괄손익", "총포괄이익", "당기총포괄이익",
+         "기본주당이익", "희석주당이익"],
     CF: ["영업활동현금흐름", "영업활동으로인한현금흐름",
          "투자활동현금흐름", "투자활동으로인한현금흐름",
          "재무활동현금흐름", "재무활동으로인한현금흐름",
          "환율변동효과", "현금및현금성자산의증가", "현금및현금성자산의순증가",
-         "현금및현금성자산의감소", "기초현금및현금성자산", "기말현금및현금성자산"],
+         "현금및현금성자산의감소",
+         "기초현금및현금성자산", "기초의현금및현금성자산",
+         "기말현금및현금성자산", "기말의현금및현금성자산"],
   };
 
   function orderStatementLines(stmtKey, lines) {
     const order = CANONICAL_ORDER[stmtKey] || [];
     let lastAnchor = -1;
     const withKeys = lines.map((line) => {
-      const idx = order.findIndex((k) => line.name && line.name.includes(k));
-      if (idx !== -1) lastAnchor = idx;
-      return { line, sortKey: idx !== -1 ? idx : lastAnchor };
+      const n = normAccountName(line.name);
+      let bestIdx = -1;
+      let bestLen = -1;
+      order.forEach((k, i) => {
+        if (n.includes(k) && k.length > bestLen) {
+          bestIdx = i;
+          bestLen = k.length;
+        }
+      });
+      if (bestIdx !== -1) lastAnchor = bestIdx;
+      return { line, sortKey: bestIdx !== -1 ? bestIdx : lastAnchor };
     });
     // Array.prototype.sort는 안정 정렬(stable) - 같은 sortKey 안에서는
     // 원본(신고서) 순서 그대로 유지됨
@@ -499,16 +541,36 @@
       ${mattersHtml ? `<div class="matter-details-list">${mattersHtml}</div>` : ""}`;
   }
 
-  // 요약계정(level 0) 아래에 이어지는 상세 라인아이템(level 1/2)을 묶어
-  // "그룹"으로 만든다 - 각 통계표가 [상세...] 다음에 [합계]가 오는 구조라서
-  // (예: 유동자산/비유동자산 상세 -> 자산총계), 뒤따라오는 level-0 행이 그
-  // 앞의 상세행들을 "소유"한다고 보는 방식. 맨 끝에 합계 없이 남는 상세행은
-  // 묶을 곳이 없어 header 없는 그룹(항상 노출)으로 처리
-  function buildStatementGroups(lines) {
+  // 요약계정(level 0) 주변의 상세 라인아이템(level 1/2)을 묶어 "그룹"으로
+  // 만든다. BS/IS는 [상세...] 다음에 [합계]가 오는 구조라서(예: 유동자산/
+  // 비유동자산 상세 -> 자산총계) 뒤따라오는 level-0 행이 그 앞의 상세행들을
+  // "소유"한다. 맨 끝에 합계 없이 남는 상세행은 묶을 곳이 없어 header 없는
+  // 그룹(항상 노출)으로 처리.
+  // CF는 반대 구조다 - "영업활동현금흐름" 소계가 먼저 나오고 그 세부내역
+  // (이자지급/법인세납부 등)이 다음 소계 전까지 뒤이어 나온다(2026-08-21
+  // 실측 확인: 기존 "뒤따라오는 합계가 소유" 방식을 CF에 그대로 적용하면
+  // 영업활동 세부내역이 투자활동현금흐름 그룹으로, 투자활동 세부내역이
+  // 재무활동현금흐름 그룹으로 한 칸씩 밀려 들어가는 오류가 있었음) - 그래서
+  // CF만 "이 소계가 다음 소계 전까지의 항목을 소유"하는 방식으로 그룹화한다.
+  function buildStatementGroups(stmtKey, lines) {
+    if (stmtKey === "CF") {
+      const groups = [];
+      let current = { header: null, children: [] };
+      lines.forEach((line) => {
+        if (accountLevel(stmtKey, line.name) === 0) {
+          if (current.header || current.children.length > 0) groups.push(current);
+          current = { header: line, children: [] };
+        } else {
+          current.children.push(line);
+        }
+      });
+      if (current.header || current.children.length > 0) groups.push(current);
+      return groups;
+    }
     const groups = [];
     let pending = [];
     lines.forEach((line) => {
-      if (accountLevel(line.name) === 0) {
+      if (accountLevel(stmtKey, line.name) === 0) {
         groups.push({ header: line, children: pending });
         pending = [];
       } else {
@@ -524,13 +586,13 @@
   }
 
   function renderStatementTable(stmtKey, lines, years) {
-    const groups = buildStatementGroups(lines);
+    const groups = buildStatementGroups(stmtKey, lines);
     const headerCols = years.map((y) => `<th>${y}</th>`).join("");
 
     const bodyHtml = groups.map((g, gi) => {
       if (!g.header) {
         return g.children.map((line) => `
-          <tr class="level-2">
+          <tr class="level-${accountLevel(stmtKey, line.name)}">
             <td>${escapeHtml(line.name)}</td>
             ${renderAmountCells(line.values)}
           </tr>`).join("");
@@ -546,11 +608,17 @@
              <td>${escapeHtml(g.header.name)}</td>
              ${renderAmountCells(g.header.values)}
            </tr>`;
-      const childRows = g.children.map((line) => `
-        <tr class="stmt-row-detail" data-group="${groupId}" hidden>
+      // 그룹 안에서도 소계(유동자산/매출원가 등, level-1)와 세부항목(level-2)을
+      // 시각적으로 구분 - 이전엔 전부 동일한 들여쓰기/굵기로 나와 펼쳐봐도
+      // 어떤 게 소계고 어떤 게 세부내역인지 구분이 안 됐음(2026-08-21 수정)
+      const childRows = g.children.map((line) => {
+        const lvl = accountLevel(stmtKey, line.name) === 1 ? "level-1" : "level-2";
+        return `
+        <tr class="stmt-row-detail ${lvl}" data-group="${groupId}" hidden>
           <td>${escapeHtml(line.name)}</td>
           ${renderAmountCells(line.values)}
-        </tr>`).join("");
+        </tr>`;
+      }).join("");
       return headerRow + childRows;
     }).join("");
 
