@@ -586,8 +586,26 @@
   }
 
   function renderStatementTable(stmtKey, lines, years) {
-    const groups = buildStatementGroups(stmtKey, lines);
     const headerCols = years.map((y) => `<th>${y}</th>`).join("");
+
+    // 손익계산서는 사용자 요청(2026-08-21)으로 접기/펼치기 없이 전 계정을
+    // 항상 노출한다 - 매출총이익 아래 매출원가가 접혀 들어가는 등, 총계보다
+    // 먼저 나와야 할 항목이 그 총계의 "숨겨진 하위 항목"처럼 보이는 게
+    // 오히려 어색하다는 피드백. 레벨별 굵기/들여쓰기 구분만 유지.
+    if (stmtKey === "IS") {
+      const flatRows = lines.map((line) => `
+        <tr class="level-${accountLevel(stmtKey, line.name)}">
+          <td>${escapeHtml(line.name)}</td>
+          ${renderAmountCells(line.values)}
+        </tr>`).join("");
+      return `
+        <table class="statement-table" data-stmt="${stmtKey}">
+          <thead><tr><th>계정과목</th>${headerCols}</tr></thead>
+          <tbody>${flatRows}</tbody>
+        </table>`;
+    }
+
+    const groups = buildStatementGroups(stmtKey, lines);
 
     const bodyHtml = groups.map((g, gi) => {
       if (!g.header) {
@@ -651,7 +669,7 @@
     }
 
     note.textContent = `기준: ${fin.years.join(", ")} (단위: 억원, 실제 신고된 계정과목 원본) · ` +
-      "자산총계·매출액·영업이익 등 요약 계정을 클릭하면 상세 내역이 펼쳐집니다";
+      "손익계산서는 전 계정을 항상 표시 · 재무상태표·현금흐름표는 자산총계 등 요약 계정을 클릭하면 상세 내역이 펼쳐집니다";
 
     container.innerHTML = STMT_ORDER.map(({ key, label }) => {
       const lines = orderStatementLines(key, fin.statements[key] || []);
