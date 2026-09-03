@@ -14,6 +14,7 @@
   const NEWS = window.__COMPANY_NEWS__ || {};
   const PROFITABILITY_EXTRA = window.__COMPANY_PROFITABILITY_EXTRA__ || {};
   const PROB_HISTORY = window.__COMPANY_PROBABILITY_HISTORY__ || {};
+  const DEBT_MATURITY = window.__COMPANY_DEBT_MATURITY__ || {};
   const FEATURES = Object.keys(META.feature_defs);
   const IMPORTANCE_RANK = Object.fromEntries(META.feature_importance.map((f) => [f.feature, f.rank]));
   const FEATURES_BY_IMPORTANCE = [...FEATURES].sort((a, b) => IMPORTANCE_RANK[a] - IMPORTANCE_RANK[b]);
@@ -698,6 +699,46 @@
     });
   }
 
+  // ---------------- 부채 만기 구조(유동성위험 주석 만기분석표, 2026-09-03) ----------------
+  // K-IFRS 1107 "유동성위험" 주석의 만기별 상환 버킷 표를 document.xml에서
+  // 직접 파싱한 결과(src/docxml_debt_maturity.py). 파일럿 실측 결과 회사마다
+  // 버킷 경계·개수가 다름을 확인해서 통일하지 않고 회사가 공시한 그대로
+  // 렌더링한다(모델 미사용 · 참고용 - EBITDA마진/CAGR와 동일 원칙). 소형/
+  // 부실 기업은 이 주석 자체가 없는 경우가 흔해 결측이 클 수 있다.
+
+  function renderDebtMaturity(c) {
+    const data = DEBT_MATURITY[c.corp_code + "::" + c.group];
+    const note = document.getElementById("debtMaturityNote");
+    const container = document.getElementById("debtMaturityBlock");
+
+    if (!data || !data.tables || data.tables.length === 0) {
+      note.textContent = "";
+      container.innerHTML = '<p class="statement-empty">공시된 만기별 상환 버킷 표(유동성위험 주석)를 찾을 수 없습니다 — 주석 자체가 없거나(소형기업에서 흔함) 서식이 파서와 맞지 않을 수 있습니다.</p>';
+      return;
+    }
+
+    note.textContent = `DART 사업보고서 "유동성위험" 주석 원문 기준(${data.report_nm ? escapeHtml(data.report_nm) : "출처 미상"}) · 회사가 실제 공시한 기간 구간을 그대로 표시하며 회사마다 구간 경계가 다를 수 있습니다 · 진하게 표시된 행(차입금·사채·리스부채)이 이자부발생부채입니다`;
+
+    container.innerHTML = data.tables.map((t) => {
+      const headerCols = t.headers.slice(1).map((h) => `<th>${escapeHtml(h)}</th>`).join("");
+      const rows = t.rows.map((r) => `
+        <tr class="${r.is_debt_row ? "debt-row" : ""}">
+          <td>${escapeHtml(r.label)}</td>
+          ${r.values.map((v) => `<td>${v === null ? '<span class="na">N/A</span>' : fmtAmount(v)}</td>`).join("")}
+        </tr>`).join("");
+      return `
+        <div class="statement-block">
+          <div class="statement-block-header"><h3>${t.period ? escapeHtml(t.period) + "말 기준" : "기준 시점 미상"}</h3></div>
+          <div class="table-scroll">
+            <table class="statement-table">
+              <thead><tr><th>구분</th>${headerCols}</tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
   // ---------------- 테마 토글 (index.html과 동일 로직) ----------------
 
   function initTheme() {
@@ -740,6 +781,7 @@
     renderProfitabilityExtra(c);
     renderAuditHistory(c);
     renderStatements(c);
+    renderDebtMaturity(c);
     renderNews(c);
   }
 
