@@ -879,6 +879,33 @@ tr.detail-row td {
 .sentiment-neutral { background: color-mix(in srgb, var(--text-muted) 16%, transparent); color: var(--text-secondary); }
 .sentiment-positive { background: color-mix(in srgb, var(--status-good) 18%, transparent); color: var(--status-good); }
 
+/* 회사 상세 - 뉴스 키워드 워드클라우드(2026-11-02) */
+.news-wordcloud-svg {
+  width: 100%;
+  height: auto;
+  max-height: 280px;
+  display: block;
+}
+.news-wordcloud-svg text {
+  cursor: default;
+  font-family: inherit;
+}
+.news-wordcloud-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.news-wordcloud-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.wc-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
 /* 회사 상세 - 수익성/성장성 확장 지표(모델 미사용 참고 항목 표시) */
 .badge-note {
   font-size: 10px;

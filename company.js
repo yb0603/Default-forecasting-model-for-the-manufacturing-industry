@@ -437,6 +437,141 @@
 
   const SENTIMENT_LABELS = { positive: "긍정", neutral: "중립", negative: "부정" };
 
+  // ---------------- 뉴스 키워드 워드클라우드 (2026-11-02) ----------------
+  // 별도 라이브러리 없이 기사 "제목"만으로 키워드 빈도를 집계해 인라인 SVG에
+  // 직접 배치(아르키메데스 나선형으로 충돌 피해가며 중심부터 채움) - 본문은
+  // 애초에 저장하지 않으므로(용량 절감 원칙) 제목이 유일한 재료. 색상은 그
+  // 단어가 등장한 기사들의 감성분석 다수결 결과를 반영 - "뉴스 감성분석에
+  // 많이 나오는 키워드"라는 요청 취지를 빈도뿐 아니라 감성과도 연결.
+  const STRIP_NAME_RE_JS = /\(주\)|주식회사|㈜|\s+/g;
+  const WORD_STOPWORDS = new Set([
+    "단독", "종합", "속보", "특징주", "공시분석", "베스트", "워스트", "오늘의",
+    "관련", "대한", "위해", "통해", "이번", "지난해", "올해", "내년", "기자",
+    "뉴스", "기사", "있다", "없다", "한다", "했다", "된다", "됐다", "대해",
+  ]);
+  // 조사/흔한 어미 꼬리를 가볍게 떼어내는 휴리스틱(형태소 분석기 없이) -
+  // 완벽하진 않지만 "실적은"/"실적이"처럼 같은 단어가 분산 집계되는 걸 줄임
+  const TRAILING_PARTICLE_RE = /(으로|에서|까지|부터|이나|라도|처럼|조차|마저|에게|이라는|하는|했던|하며|라는|와|과|은|는|이|가|을|를|의|에|로|도|만)$/;
+
+  function tokenizeTitle(title) {
+    return (title || "")
+      .replace(/\[[^\]]*\]|\([^)]*\)/g, " ")  // [단독]/(종합) 류 대괄호 태그 제거
+      .split(/[^가-힣a-zA-Z0-9]+/)
+      .map((t) => t.trim())
+      .filter(Boolean);
+  }
+
+  function renderNewsWordCloud(c) {
+    const section = document.getElementById("newsWordCloudSection");
+    const entry = NEWS[c.corp_code + "::" + c.group];
+    const note = document.getElementById("newsWordCloudNote");
+    const container = document.getElementById("newsWordCloudBlock");
+    const articles = entry && entry.articles ? entry.articles : [];
+
+    if (articles.length === 0) {
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+
+    const nameCore = (c.corp_name || "").replace(STRIP_NAME_RE_JS, "");
+    const freq = new Map();      // word -> count
+    const sentCount = new Map(); // word -> {negative,neutral,positive}
+
+    articles.forEach((a) => {
+      const seenInThisTitle = new Set();
+      tokenizeTitle(a.title).forEach((raw) => {
+        const w = raw.replace(TRAILING_PARTICLE_RE, "");
+        if (w.length < 2 || /^[0-9]+$/.test(w)) return;
+        if (WORD_STOPWORDS.has(w)) return;
+        if (nameCore && w === nameCore) return;
+        if (seenInThisTitle.has(w)) return; // 한 기사당 동일 단어 1회만 카운트
+        seenInThisTitle.add(w);
+        freq.set(w, (freq.get(w) || 0) + 1);
+        if (a.sentiment) {
+          const sc = sentCount.get(w) || { negative: 0, neutral: 0, positive: 0 };
+          sc[a.sentiment.label] = (sc[a.sentiment.label] || 0) + 1;
+          sentCount.set(w, sc);
+        }
+      });
+    });
+
+    const words = [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 24);
+
+    if (words.length < 5) {
+      note.textContent = "";
+      container.innerHTML = '<p class="statement-empty">키워드를 추출하기에 기사 수가 충분하지 않습니다.</p>';
+      return;
+    }
+
+    note.textContent = `최근 1년 뉴스 제목에서 자주 등장한 단어 ${words.length}개 · 색상은 그 단어가 등장한 기사의 감성분석 결과(부정/중립/긍정) 다수결 기준`;
+
+    const maxN = words[0][1];
+    const minN = words[words.length - 1][1];
+    const fontFor = (n) => (maxN === minN ? 22 : Math.round(14 + ((n - minN) / (maxN - minN)) * 26));
+    const colorFor = (w) => {
+      const sc = sentCount.get(w);
+      if (!sc) return "var(--text-muted)";
+      const top = Object.entries(sc).sort((a, b) => b[1] - a[1])[0];
+      if (!top || top[1] === 0) return "var(--text-muted)";
+      if (top[0] === "negative") return "var(--status-critical)";
+      if (top[0] === "positive") return "var(--status-good)";
+      return "var(--text-muted)";
+    };
+
+    const VB_W = 760, VB_H = 320;
+    const cx = VB_W / 2, cy = VB_H / 2;
+    const placed = [];
+
+    function boxFor(word, fontSize) {
+      return { w: word.length * fontSize * 0.92 + 8, h: fontSize * 1.1 };
+    }
+    function collides(x, y, w, h) {
+      const pad = 2;
+      return placed.some((b) => !(x + w / 2 + pad < b.x - b.w / 2 ||
+                                    x - w / 2 - pad > b.x + b.w / 2 ||
+                                    y + h / 2 + pad < b.y - b.h / 2 ||
+                                    y - h / 2 - pad > b.y + b.h / 2));
+    }
+
+    const items = [];
+    words.forEach(([word, n]) => {
+      const fontSize = fontFor(n);
+      const { w, h } = boxFor(word, fontSize);
+      let x = cx, y = cy, found = false;
+      // 나선 반경을 step=1200까지 끝까지 키워서 캔버스 가장자리까지 실제로
+      // 닿도록 함(이전엔 반경 증가가 너무 느려 중앙 1/3에만 몰렸던 문제 수정)
+      for (let step = 0; step < 1200; step++) {
+        const angle = 0.5 * step;
+        const radius = 5.0 * Math.sqrt(step);
+        x = cx + radius * Math.cos(angle);
+        y = cy + radius * Math.sin(angle) * 0.72; // 가로로 넓은 타원형 분포
+        if (x - w / 2 < 4 || x + w / 2 > VB_W - 4 || y - h / 2 < 4 || y + h / 2 > VB_H - 4) continue;
+        if (!collides(x, y, w, h)) { found = true; break; }
+      }
+      if (!found) return; // 자리를 못 찾으면 그 단어는 생략(겹침 방지 우선)
+      placed.push({ x, y, w, h });
+      items.push({ word, x, y, fontSize, color: colorFor(word), n });
+    });
+
+    const svg = `
+      <svg class="news-wordcloud-svg" viewBox="0 0 ${VB_W} ${VB_H}" role="img" aria-label="최근 뉴스 키워드 워드클라우드">
+        ${items.map((it) => `
+          <text x="${it.x.toFixed(1)}" y="${it.y.toFixed(1)}" font-size="${it.fontSize}"
+                fill="${it.color}" text-anchor="middle" dominant-baseline="middle"
+                font-weight="${it.n >= maxN * 0.6 ? 700 : 500}">
+            <title>${escapeHtml(it.word)} (${it.n}회)</title>${escapeHtml(it.word)}
+          </text>`).join("")}
+      </svg>
+      <div class="news-wordcloud-legend">
+        <span><i class="wc-dot" style="background:var(--status-critical)"></i>부정 기사 다수</span>
+        <span><i class="wc-dot" style="background:var(--status-good)"></i>긍정 기사 다수</span>
+        <span><i class="wc-dot" style="background:var(--text-muted)"></i>중립 · 감성분석 미대상</span>
+      </div>`;
+
+    container.innerHTML = svg;
+  }
+
   function renderNews(c) {
     const entry = NEWS[c.corp_code + "::" + c.group];
     const note = document.getElementById("newsNote");
@@ -782,6 +917,7 @@
     renderAuditHistory(c);
     renderStatements(c);
     renderDebtMaturity(c);
+    renderNewsWordCloud(c);
     renderNews(c);
   }
 
