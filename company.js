@@ -15,6 +15,7 @@
   const PROFITABILITY_EXTRA = window.__COMPANY_PROFITABILITY_EXTRA__ || {};
   const PROB_HISTORY = window.__COMPANY_PROBABILITY_HISTORY__ || {};
   const DEBT_MATURITY = window.__COMPANY_DEBT_MATURITY__ || {};
+  const CONTACTS = window.__COMPANY_CONTACTS__ || {};
   const FEATURES = Object.keys(META.feature_defs);
   const IMPORTANCE_RANK = Object.fromEntries(META.feature_importance.map((f) => [f.feature, f.rank]));
   const FEATURES_BY_IMPORTANCE = [...FEATURES].sort((a, b) => IMPORTANCE_RANK[a] - IMPORTANCE_RANK[b]);
@@ -841,6 +842,80 @@
   // 렌더링한다(모델 미사용 · 참고용 - EBITDA마진/CAGR와 동일 원칙). 소형/
   // 부실 기업은 이 주석 자체가 없는 경우가 흔해 결측이 클 수 있다.
 
+  // ---------------- 주요 연락처 (딜소싱 콜드콜용, 2026-11-02) ----------------
+  // DART 기업개황(company())의 대표전화/주소/홈페이지 + 임원현황
+  // (report(key_word='임원'))의 성명/직위/담당업무/약력만 노출한다. 임원
+  // 개인 이메일·휴대폰은 DART에 공시되지 않아 수집 대상이 아니고, LinkedIn도
+  // ToS 위반 스크래핑 대신 이름 기반 검색 딥링크로만 연결한다(실제 프로필
+  // 데이터는 가져오지 않음) - 사용자와 사전 협의한 스코프.
+  function normalizeHomepageUrl(url) {
+    if (!url) return "";
+    return /^https?:\/\//i.test(url) ? url : `http://${url}`;
+  }
+
+  function renderContacts(c) {
+    const section = document.getElementById("contactsSection");
+    const entry = CONTACTS[c.corp_code + "::" + c.group];
+    const note = document.getElementById("contactsNote");
+    const container = document.getElementById("contactsBlock");
+
+    const comp = entry && entry.company;
+    const execs = (entry && entry.executives) || [];
+
+    if (!comp && execs.length === 0) {
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+    note.textContent = "DART 기업개황·임원현황 공시 기준 · 딜소싱 콜드콜 참고용 — 연락 전 최신 재직 여부를 별도로 확인하세요";
+
+    const companyHtml = comp ? `
+      <dl class="contact-dl">
+        ${comp.ceo_name ? `<div class="contact-dl-row"><dt>대표이사</dt><dd>${escapeHtml(comp.ceo_name)}</dd></div>` : ""}
+        ${comp.phone ? `<div class="contact-dl-row"><dt>대표전화</dt><dd><a href="tel:${escapeHtml(comp.phone)}">${escapeHtml(comp.phone)}</a></dd></div>` : ""}
+        ${comp.fax ? `<div class="contact-dl-row"><dt>팩스</dt><dd>${escapeHtml(comp.fax)}</dd></div>` : ""}
+        ${comp.address ? `<div class="contact-dl-row"><dt>주소</dt><dd>${escapeHtml(comp.address)}</dd></div>` : ""}
+        ${comp.homepage ? `<div class="contact-dl-row"><dt>홈페이지</dt><dd><a href="${escapeHtml(normalizeHomepageUrl(comp.homepage))}" target="_blank" rel="noopener noreferrer">${escapeHtml(comp.homepage)}</a></dd></div>` : ""}
+      </dl>` : '<p class="statement-empty">회사 대표 연락처를 찾을 수 없습니다.</p>';
+
+    const execsHtml = execs.length > 0 ? `
+      <div class="exec-grid">
+        ${execs.map((e) => `
+          <div class="exec-card">
+            <div class="exec-card-head">
+              <span class="exec-name">${escapeHtml(e.name)}</span>
+              ${e.title ? `<span class="exec-title-badge">${escapeHtml(e.title)}</span>` : ""}
+            </div>
+            <div class="exec-meta">
+              ${e.charge ? `<span>담당 ${escapeHtml(e.charge)}</span>` : ""}
+              ${e.registered ? `<span>${escapeHtml(e.registered)}</span>` : ""}
+              ${e.full_time ? `<span>${escapeHtml(e.full_time)}</span>` : ""}
+            </div>
+            ${e.career ? `
+              <details class="exec-career">
+                <summary></summary>
+                <p>${nl2br(escapeHtml(e.career))}</p>
+              </details>` : ""}
+            <div class="exec-search-links">
+              <a href="${e.search_links.google}" target="_blank" rel="noopener noreferrer">구글 검색 ↗</a>
+              <a href="${e.search_links.linkedin}" target="_blank" rel="noopener noreferrer">LinkedIn 검색 ↗</a>
+            </div>
+          </div>`).join("")}
+      </div>` : '<p class="statement-empty">공시된 임원 명단을 찾을 수 없습니다 — 사업보고서 제출의무가 없는 소형 비상장기업에서 흔합니다.</p>';
+
+    container.innerHTML = `
+      <div class="contacts-layout">
+        <div class="contacts-block">
+          <h3 class="contacts-subtitle">회사 대표 연락처</h3>
+          ${companyHtml}
+        </div>
+        <div class="contacts-block">
+          <h3 class="contacts-subtitle">임원 명단${execs.length > 0 ? ` (${execs.length}명)` : ""}</h3>
+          ${execsHtml}
+        </div>
+      </div>`;
+  }
+
   function renderDebtMaturity(c) {
     const data = DEBT_MATURITY[c.corp_code + "::" + c.group];
     const note = document.getElementById("debtMaturityNote");
@@ -911,6 +986,7 @@
     document.getElementById("companyContent").removeAttribute("hidden");
     renderOverview(c);
     renderNotes(c);
+    renderContacts(c);
     renderProbabilityHistory(c);
     renderIndicators(c);
     renderProfitabilityExtra(c);

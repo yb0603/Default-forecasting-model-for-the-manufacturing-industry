@@ -918,6 +918,99 @@ tr.detail-row td {
   white-space: nowrap;
 }
 
+/* 회사 상세 - 주요 연락처(딜소싱 콜드콜용, 2026-11-02) */
+.contacts-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  gap: 24px;
+}
+@media (max-width: 720px) {
+  .contacts-layout { grid-template-columns: 1fr; }
+}
+.contacts-subtitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin: 0 0 10px;
+}
+.contact-dl { margin: 0; }
+.contact-dl-row {
+  display: flex;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.contact-dl-row:last-child { border-bottom: none; }
+.contact-dl-row dt { flex: 0 0 64px; color: var(--text-muted); }
+.contact-dl-row dd { margin: 0; color: var(--text-primary); }
+.contact-dl-row dd a { color: var(--brand-accent-ink); text-decoration: none; }
+.contact-dl-row dd a:hover { text-decoration: underline; }
+.exec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+.exec-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.exec-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.exec-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.exec-title-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-accent-ink);
+  background: var(--brand-tint);
+  border: 1px solid var(--brand-accent);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.exec-meta {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.exec-career { margin-top: 6px; font-size: 12px; }
+.exec-career summary {
+  cursor: pointer;
+  list-style: none;
+}
+.exec-career summary::-webkit-details-marker { display: none; }
+.exec-career summary::after {
+  content: "약력 보기 ▸";
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.exec-career[open] summary::after { content: "약력 접기 ▾"; }
+.exec-career p { margin: 6px 0 0; color: var(--text-secondary); line-height: 1.5; }
+.exec-search-links {
+  margin-top: 8px;
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+}
+.exec-search-links a {
+  color: var(--brand-accent-ink);
+  text-decoration: none;
+}
+.exec-search-links a:hover { text-decoration: underline; }
+.contacts-disclaimer {
+  margin: 14px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
 /* 회사 상세 - 부도확률 3개년 추이 */
 .prob-history-wrap {
   display: flex;
