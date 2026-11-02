@@ -16,6 +16,7 @@
   const PROB_HISTORY = window.__COMPANY_PROBABILITY_HISTORY__ || {};
   const DEBT_MATURITY = window.__COMPANY_DEBT_MATURITY__ || {};
   const CONTACTS = window.__COMPANY_CONTACTS__ || {};
+  const GOVERNANCE_EVENTS = window.__COMPANY_GOVERNANCE_EVENTS__ || {};
   const FEATURES = Object.keys(META.feature_defs);
   const IMPORTANCE_RANK = Object.fromEntries(META.feature_importance.map((f) => [f.feature, f.rank]));
   const FEATURES_BY_IMPORTANCE = [...FEATURES].sort((a, b) => IMPORTANCE_RANK[a] - IMPORTANCE_RANK[b]);
@@ -916,6 +917,76 @@
       </div>`;
   }
 
+  // ---------------- 최대주주 변동이력 / 소송 등의 제기 (2026-11-02) ----------------
+  // 둘 다 DART 구조화 공시(최대주주변동현황 hyslrChgSttus / 소송 등의 제기
+  // lwstLg) 원문 그대로 노출 - 딜소싱 관점에서 경영권 변동/법적 분쟁은
+  // 선행 위험신호로 유용하다고 판단해 추가(사용자 요청, 2026-11-02).
+
+  function renderShareholderChanges(c) {
+    const section = document.getElementById("shareholderChangesSection");
+    const entry = GOVERNANCE_EVENTS[c.corp_code + "::" + c.group];
+    const note = document.getElementById("shareholderChangesNote");
+    const container = document.getElementById("shareholderChangesBlock");
+    const rows = (entry && entry.shareholder_changes) || [];
+
+    if (rows.length === 0) {
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+    note.textContent = `DART 사업보고서 "최대주주 변동현황" 공시 기준 · 최근 변동이 위로 오도록 정렬 · 총 ${rows.length}건`;
+
+    container.innerHTML = `
+      <div class="table-scroll">
+        <table class="statement-table">
+          <thead><tr><th>변동일</th><th>최대주주명</th><th>소유주식수</th><th>지분율</th><th>변동원인</th><th>비고</th></tr></thead>
+          <tbody>
+            ${rows.map((r) => `
+              <tr>
+                <td>${r.date ? escapeHtml(r.date) : '<span class="na">N/A</span>'}</td>
+                <td>${escapeHtml(r.holder)}</td>
+                <td>${r.shares ? escapeHtml(r.shares) : '<span class="na">N/A</span>'}</td>
+                <td>${r.stake_pct ? escapeHtml(r.stake_pct) : '<span class="na">N/A</span>'}</td>
+                <td>${r.cause ? escapeHtml(r.cause) : '<span class="na">N/A</span>'}</td>
+                <td>${r.note ? nl2br(escapeHtml(r.note)) : '<span class="na">N/A</span>'}</td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  function renderLitigation(c) {
+    const section = document.getElementById("litigationSection");
+    const entry = GOVERNANCE_EVENTS[c.corp_code + "::" + c.group];
+    const note = document.getElementById("litigationNote");
+    const container = document.getElementById("litigationBlock");
+    const rows = (entry && entry.litigations) || [];
+
+    if (rows.length === 0) {
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+    note.textContent = `DART "소송 등의 제기" 수시공시 기준(기준연도 전후 조회) · 최근 제기 건이 위로 오도록 정렬 · 총 ${rows.length}건`;
+
+    container.innerHTML = `
+      <div class="litigation-list">
+        ${rows.map((r) => `
+          <details class="litigation-item">
+            <summary>
+              <span class="litigation-date">${r.filed_date ? escapeHtml(r.filed_date) : "일자 미상"}</span>
+              <span class="litigation-case-name">${escapeHtml(r.case_name || "사건명 미상")}</span>
+              ${r.court ? `<span class="litigation-court">${escapeHtml(r.court)}</span>` : ""}
+            </summary>
+            <div class="litigation-detail">
+              ${r.plaintiff ? `<p><strong>원고/신청인</strong> ${nl2br(escapeHtml(r.plaintiff))}</p>` : ""}
+              ${r.request ? `<p><strong>청구/신청 내용</strong> ${nl2br(escapeHtml(r.request))}</p>` : ""}
+              ${r.response_plan ? `<p><strong>회사 대응방침</strong> ${nl2br(escapeHtml(r.response_plan))}</p>` : ""}
+            </div>
+          </details>`).join("")}
+      </div>`;
+  }
+
   function renderDebtMaturity(c) {
     const data = DEBT_MATURITY[c.corp_code + "::" + c.group];
     const note = document.getElementById("debtMaturityNote");
@@ -991,6 +1062,8 @@
     renderIndicators(c);
     renderProfitabilityExtra(c);
     renderAuditHistory(c);
+    renderShareholderChanges(c);
+    renderLitigation(c);
     renderStatements(c);
     renderDebtMaturity(c);
     renderNewsWordCloud(c);

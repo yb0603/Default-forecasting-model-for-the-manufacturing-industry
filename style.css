@@ -1011,6 +1011,61 @@ tr.detail-row td {
   color: var(--text-muted);
 }
 
+/* 회사 상세 - 소송 등의 제기(2026-11-02) */
+.litigation-list { display: flex; flex-direction: column; gap: 8px; }
+.litigation-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+}
+.litigation-item summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.litigation-item summary::-webkit-details-marker { display: none; }
+.litigation-item summary::before {
+  content: "▸";
+  color: var(--text-muted);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.litigation-item[open] summary::before { content: "▾"; }
+.litigation-date {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.litigation-case-name { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+.litigation-court {
+  font-size: 11px;
+  color: var(--brand-accent-ink);
+  background: var(--brand-tint);
+  border: 1px solid var(--brand-accent);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-left: auto;
+}
+.litigation-detail {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.litigation-detail p { margin: 0 0 8px; line-height: 1.55; }
+.litigation-detail p:last-child { margin-bottom: 0; }
+.litigation-detail strong {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
 /* 회사 상세 - 부도확률 3개년 추이 */
 .prob-history-wrap {
   display: flex;
